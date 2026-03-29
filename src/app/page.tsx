@@ -1,65 +1,118 @@
-import Image from "next/image";
+import Link from "next/link";
+import { ArrowRight, Sparkles, Trophy, Zap } from "lucide-react";
+import { HeroOrb } from "@/components/hero-orb";
+import { QuizCard } from "@/components/quiz-card";
+import { Button } from "@/components/ui/button";
+import { connectToDatabase } from "@/lib/mongoose";
+import { getServerAuthSession } from "@/lib/auth";
+import { Quiz } from "@/models/Quiz";
 
-export default function Home() {
+async function getFeaturedQuizzes() {
+  await connectToDatabase();
+  const quizzes = await Quiz.find({ visibility: "public" })
+    .sort({ playCount: -1, updatedAt: -1 })
+    .limit(6)
+    .lean();
+
+  return quizzes.map((quiz) => ({
+    id: quiz._id.toString(),
+    slug: quiz.slug,
+    title: quiz.title,
+    description: quiz.description,
+    category: quiz.category,
+    tags: quiz.tags,
+    questionCount: quiz.questions.length,
+    playCount: quiz.playCount,
+  }));
+}
+
+export default async function HomePage() {
+  const [featuredQuizzes, session] = await Promise.all([
+    getFeaturedQuizzes(),
+    getServerAuthSession(),
+  ]);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <div className="relative overflow-hidden">
+      <div className="absolute inset-x-0 top-0 -z-10 h-[680px] bg-linear-to-b from-cyan-400/10 via-amber-300/10 to-transparent" />
+      <section className="mx-auto grid max-w-7xl gap-10 px-4 py-20 sm:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:px-8 lg:py-28">
+        <div className="space-y-8">
+          <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-4 py-2 text-sm text-cyan-100">
+            <Sparkles className="h-4 w-4" />
+            Next.js quiz platform with game-like motion
+          </div>
+          <div className="space-y-5">
+            <h1 className="max-w-3xl font-[family:var(--font-space-grotesk)] text-5xl font-semibold tracking-tight text-white sm:text-6xl">
+              Build trivia that feels like a competition, not a form.
+            </h1>
+            <p className="max-w-2xl text-lg leading-8 text-slate-300">
+              Quiz Arena lets every user create public or private quizzes, launch them
+              instantly, and compete on score-and-speed leaderboards.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <Button
+              asChild
+              className="rounded-full bg-amber-300 px-6 text-slate-950 hover:bg-amber-200"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+              <Link href={session?.user ? "/dashboard/quizzes/new" : "/auth/sign-up"}>
+                Start creating
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              className="rounded-full border-white/10 bg-white/5 px-6 text-white hover:bg-white/10"
             >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+              <Link href="/quizzes">Explore quizzes</Link>
+            </Button>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {[
+              { icon: Trophy, label: "Per-quiz rankings" },
+              { icon: Zap, label: "Animated play flow" },
+              { icon: Sparkles, label: "Creator dashboard" },
+            ].map((item) => (
+              <div
+                key={item.label}
+                className="rounded-[24px] border border-white/10 bg-white/[0.03] p-4 text-slate-200"
+              >
+                <item.icon className="h-5 w-5 text-amber-300" />
+                <p className="mt-3 text-sm">{item.label}</p>
+              </div>
+            ))}
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        <div className="flex items-center justify-center lg:justify-end">
+          <HeroOrb />
         </div>
-      </main>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-4 pb-20 sm:px-6 lg:px-8">
+        <div className="flex items-end justify-between gap-4">
+          <div>
+            <p className="text-sm uppercase tracking-[0.28em] text-amber-200/70">
+              Featured board
+            </p>
+            <h2 className="mt-3 font-[family:var(--font-space-grotesk)] text-3xl font-semibold text-white">
+              Popular public quizzes
+            </h2>
+          </div>
+          <Link className="text-sm text-cyan-200 hover:text-white" href="/quizzes">
+            See all quizzes
+          </Link>
+        </div>
+        <div className="mt-8 grid gap-5 lg:grid-cols-3">
+          {featuredQuizzes.length ? (
+            featuredQuizzes.map((quiz) => <QuizCard key={quiz.id} quiz={quiz} />)
+          ) : (
+            <div className="rounded-[28px] border border-dashed border-white/15 bg-white/[0.03] p-8 text-slate-300 lg:col-span-3">
+              No public quizzes yet. Create the first one from the dashboard.
+            </div>
+          )}
+        </div>
+      </section>
     </div>
   );
 }
