@@ -45,7 +45,7 @@ export default async function PlayPage({
     ? [...baseQuestions].sort(() => Math.random() - 0.5)
     : baseQuestions;
 
-  const preparedQuestions = questions.map((question) => ({
+  const preparedQuestions = questions.map((question: typeof baseQuestions[number]) => ({
     ...question,
     options: quiz.settings.shuffleOptions
       ? [...question.options].sort(() => Math.random() - 0.5)
