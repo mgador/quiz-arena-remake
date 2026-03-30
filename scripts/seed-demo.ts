@@ -62,7 +62,11 @@ function pickManyDistinct<T>(values: T[], count: number): T[] {
 }
 
 function buildQuestion(index: number) {
-  const type = pickOne(["single_choice", "multi_select", "true_false"] as const);
+  const type = pickOne([
+    "single_choice",
+    "multi_select",
+    "true_false",
+  ] as const);
 
   if (type === "true_false") {
     const answer = pickOne(["true", "false"]);
@@ -106,13 +110,19 @@ function buildQuizTitle(topic: string, index: number) {
   return `[AI SEED] ${topic} Quiz ${index + 1}`;
 }
 
-function uniqueSlug(baseTitle: string, runId: string, userIndex: number, quizIndex: number) {
-  const base = baseTitle
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)+/g, "")
-    .slice(0, 60) || "ai-seed-quiz";
+function uniqueSlug(
+  baseTitle: string,
+  runId: string,
+  userIndex: number,
+  quizIndex: number,
+) {
+  const base =
+    baseTitle
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)+/g, "")
+      .slice(0, 60) || "ai-seed-quiz";
   return `${base}-${runId}-u${userIndex + 1}-q${quizIndex + 1}`;
 }
 
@@ -131,7 +141,11 @@ async function cleanupSeedData() {
   const [attemptResult, quizResult, userResult] = await Promise.all([
     QuizAttempt.deleteMany({ userId: { $in: userIds } }),
     Quiz.deleteMany({
-      $or: [{ ownerId: { $in: userIds } }, { tags: AI_MARKER }, { tags: "ai-seed" }],
+      $or: [
+        { ownerId: { $in: userIds } },
+        { tags: AI_MARKER },
+        { tags: "ai-seed" },
+      ],
     }),
     User.deleteMany({ _id: { $in: userIds } }),
   ]);
@@ -151,17 +165,28 @@ async function seedData(config: SeedConfig) {
 
   const runId = Date.now().toString(36);
   const passwordHash = await hash(config.password, 10);
-  const topics = ["Science", "History", "Math", "Sports", "Music", "Movies", "Tech"];
+  const topics = [
+    "Science",
+    "History",
+    "Math",
+    "Sports",
+    "Music",
+    "Movies",
+    "Tech",
+  ];
 
-  const usersToInsert = Array.from({ length: config.users }, (_, userIndex) => ({
-    name: `AI Seed User ${runId.toUpperCase()}-${userIndex + 1}`,
-    email: `${AI_MARKER}.${runId}.u${userIndex + 1}@${AI_EMAIL_DOMAIN}`,
-    passwordHash,
-    image: null,
-    emailVerified: null,
-    createdQuizzesCount: config.quizzesPerUser,
-    playedQuizzesCount: 0,
-  }));
+  const usersToInsert = Array.from(
+    { length: config.users },
+    (_, userIndex) => ({
+      name: `AI Seed User ${runId.toUpperCase()}-${userIndex + 1}`,
+      email: `${AI_MARKER}.${runId}.u${userIndex + 1}@${AI_EMAIL_DOMAIN}`,
+      passwordHash,
+      image: null,
+      emailVerified: null,
+      createdQuizzesCount: config.quizzesPerUser,
+      playedQuizzesCount: 0,
+    }),
+  );
 
   const insertedUsers = await User.insertMany(usersToInsert);
 
@@ -169,14 +194,16 @@ async function seedData(config: SeedConfig) {
     return Array.from({ length: config.quizzesPerUser }, (_, quizIndex) => {
       const topic = pickOne(topics);
       const title = buildQuizTitle(topic, quizIndex);
-      const questionCount = randomInt(config.minQuestions, config.maxQuestions + 1);
+      const questionCount = randomInt(
+        config.minQuestions,
+        config.maxQuestions + 1,
+      );
 
       return {
         ownerId: user._id,
         title,
         slug: uniqueSlug(title, runId, userIndex, quizIndex),
-        description:
-          `This is AI-generated seed content (${AI_MARKER}) for testing and can be deleted safely.`,
+        description: `This is AI-generated seed content (${AI_MARKER}) for testing and can be deleted safely.`,
         visibility: pickOne(["public", "draft"] as const),
         category: topic,
         tags: ["ai-seed", AI_MARKER, topic.toLowerCase()],
@@ -207,41 +234,51 @@ async function seedData(config: SeedConfig) {
     return Array.from({ length: attemptsCount }, () => {
       const quiz = pickOne(insertedQuizzes);
       const completionMs = randomInt(45_000, 20 * 60_000);
-      const submittedAt = new Date(Date.now() - randomInt(1, 30) * 24 * 60 * 60 * 1000);
+      const submittedAt = new Date(
+        Date.now() - randomInt(1, 30) * 24 * 60 * 60 * 1000,
+      );
       const startedAt = new Date(submittedAt.getTime() - completionMs);
 
-      const answers = quiz.questions.map((question: (typeof quiz.questions)[number]) => {
-        const shouldAnswerCorrectly = randomInt(100) < 65;
+      const answers = quiz.questions.map(
+        (question: (typeof quiz.questions)[number]) => {
+          const shouldAnswerCorrectly = randomInt(100) < 65;
 
-        const selectedOptionIds = shouldAnswerCorrectly
-          ? [...question.correctOptionIds]
-          : question.type === "single_choice"
-            ? [pickOne(question.options.map((option: { id: string }) => option.id))]
-            : question.type === "true_false"
-              ? [question.correctOptionIds[0] === "true" ? "false" : "true"]
-              : pickManyDistinct(
-                  question.options.map((option: { id: string }) => option.id),
-                  randomInt(1, Math.min(3, question.options.length) + 1),
-                );
+          const selectedOptionIds = shouldAnswerCorrectly
+            ? [...question.correctOptionIds]
+            : question.type === "single_choice"
+              ? [
+                  pickOne(
+                    question.options.map((option: { id: string }) => option.id),
+                  ),
+                ]
+              : question.type === "true_false"
+                ? [question.correctOptionIds[0] === "true" ? "false" : "true"]
+                : pickManyDistinct(
+                    question.options.map((option: { id: string }) => option.id),
+                    randomInt(1, Math.min(3, question.options.length) + 1),
+                  );
 
-        const expected = [...question.correctOptionIds].sort().join("|");
-        const actual = [...selectedOptionIds].sort().join("|");
-        const isCorrect = expected === actual;
+          const expected = [...question.correctOptionIds].sort().join("|");
+          const actual = [...selectedOptionIds].sort().join("|");
+          const isCorrect = expected === actual;
 
-        return {
-          questionId: question.id,
-          selectedOptionIds,
-          isCorrect,
-          pointsEarned: isCorrect ? question.points : 0,
-        };
-      });
+          return {
+            questionId: question.id,
+            selectedOptionIds,
+            isCorrect,
+            pointsEarned: isCorrect ? question.points : 0,
+          };
+        },
+      );
 
       const score = answers.reduce(
-        (sum: number, answer: (typeof answers)[number]) => sum + answer.pointsEarned,
+        (sum: number, answer: (typeof answers)[number]) =>
+          sum + answer.pointsEarned,
         0,
       );
       const maxScore = quiz.questions.reduce(
-        (sum: number, question: (typeof quiz.questions)[number]) => sum + question.points,
+        (sum: number, question: (typeof quiz.questions)[number]) =>
+          sum + question.points,
         0,
       );
 
@@ -274,12 +311,14 @@ async function seedData(config: SeedConfig) {
 
   const insertedAttempts = await QuizAttempt.insertMany(attemptsToInsert);
 
-  const quizPlayCountOps = Array.from(quizPlayCountById.entries()).map(([quizId, count]) => ({
-    updateOne: {
-      filter: { _id: quizId },
-      update: { $inc: { playCount: count } },
-    },
-  }));
+  const quizPlayCountOps = Array.from(quizPlayCountById.entries()).map(
+    ([quizId, count]) => ({
+      updateOne: {
+        filter: { _id: quizId },
+        update: { $inc: { playCount: count } },
+      },
+    }),
+  );
 
   if (quizPlayCountOps.length > 0) {
     await Quiz.bulkWrite(quizPlayCountOps);
@@ -327,7 +366,9 @@ async function main() {
   }
 
   if (config.minAttemptsPerUser > config.maxAttemptsPerUser) {
-    throw new Error("--min-attempts-per-user must be <= --max-attempts-per-user");
+    throw new Error(
+      "--min-attempts-per-user must be <= --max-attempts-per-user",
+    );
   }
 
   await seedData(config);
