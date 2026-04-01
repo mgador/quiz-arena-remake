@@ -50,6 +50,42 @@ NEXTAUTH_SECRET=replace-with-a-long-random-secret
 
 `NEXTAUTH_SECRET` must be a long random string (minimum 32 characters). The app validates this at startup and throws an error if the value is missing or still a placeholder.
 
+## Deploying to Vercel
+
+### 1. Set up MongoDB Atlas
+
+Create a free cluster at [cloud.mongodb.com](https://cloud.mongodb.com) and copy the connection string.
+In **Network Access**, allow connections from anywhere (`0.0.0.0/0`) or add Vercel's IP ranges.
+
+### 2. Import project in Vercel
+
+1. Push this repository to GitHub.
+2. Go to [vercel.com/new](https://vercel.com/new) and import your repository.
+3. Vercel auto-detects Next.js — no framework configuration needed.
+
+### 3. Add environment variables
+
+In the Vercel project settings → **Environment Variables**, add:
+
+| Variable | Value |
+|---|---|
+| `MONGODB_URI` | `mongodb+srv://<user>:<password>@<cluster>/<db>?retryWrites=true&w=majority` |
+| `MONGODB_DB_NAME` | `quiz-arena` (or your preferred name) |
+| `NEXTAUTH_URL` | `https://<your-project>.vercel.app` |
+| `NEXTAUTH_SECRET` | A random 64-character hex string (see below) |
+
+Generate a strong secret:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+### 4. Deploy
+
+Click **Deploy**. Vercel runs `npm run build` and serves the app as serverless functions.
+
+> **Note:** `NEXTAUTH_SECRET` must be at least 32 characters. The app throws an error at startup if it is missing or still a placeholder value.
+
 ## Local Development
 
 Install dependencies:
